@@ -14,24 +14,21 @@
     color: #fff;
   }
 
-  .responsive-container {
-    width: 100%;
-    padding: 2vw;
-    box-sizing: border-box;
-  }
-
   .container {
-    width: 100%;
-    background: rgba(255, 255, 255, 0.05);
-    border-radius: 2vw;
+    width: 95%;
+    max-width: 1400px;
+    margin: 0 auto;
     padding: 2vw;
-    box-sizing: border-box;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 1vw;
     backdrop-filter: blur(0.5vw);
+    box-sizing: border-box;
   }
 
   h1 {
     text-align: center;
-    font-size: 2.5vw;
+    font-size: 3vw;
+    margin-bottom: 2vw;
     background: linear-gradient(90deg, #00f5ff, #00a8ff);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
@@ -39,17 +36,28 @@
 
   .chart-wrapper {
     position: relative;
+    width: 100%;
+    padding-bottom: 50%; /* maintains aspect ratio */
     background: #0f1419;
     border-radius: 1vw;
-    padding: 2vw;
+    border: 0.2vw solid rgba(0,245,255,0.2);
     margin-bottom: 2vw;
-    border: 0.3vw solid rgba(0, 245, 255, 0.2);
+  }
+
+  .chart-content {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
   }
 
   .frequency-axis {
     display: flex;
     justify-content: space-between;
-    height: 30vw;
+    height: 60%;
+    position: relative;
+    bottom: 0;
     border-left: 0.3vw solid rgba(255,255,255,0.3);
     border-bottom: 0.3vw solid rgba(255,255,255,0.3);
   }
@@ -67,34 +75,98 @@
     background: rgba(0,245,255,0.15);
   }
 
-  .frequency-band.highlighted {
-    border-left:0.2vw solid #00f5ff;
-    border-right:0.2vw solid #00f5ff;
-    z-index: 10;
-  }
-
   .band-label {
     position: absolute;
     top: -2vw;
     left: 50%;
     transform: translateX(-50%);
-    font-weight: bold;
     font-size: 1vw;
+    font-weight: bold;
     color: #00f5ff;
     white-space: nowrap;
   }
 
-  .eq-curve {
+  .info-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1vw;
+    margin-top: 2vw;
+  }
+
+  .info-card {
+    background: rgba(0,245,255,0.05);
+    border: 0.2vw solid rgba(0,245,255,0.2);
+    border-radius: 0.8vw;
+    padding: 1vw;
+    transition: all 0.3s ease;
+  }
+
+  .info-card h3 {
+    color: #00f5ff;
+    font-size: 1.2vw;
+    margin-bottom: 0.5vw;
+  }
+
+  .instrument-markers {
+    margin-top: 2vw;
+    padding: 1vw;
+    background: rgba(0,0,0,0.3);
+    border-radius: 0.8vw;
+  }
+
+  .instrument-markers h3 {
+    color: #00f5ff;
+    text-align: center;
+    font-size: 1.5vw;
+    margin-bottom: 1vw;
+  }
+
+  .instruments-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1vw;
+  }
+
+  .instrument-item {
+    background: rgba(255,255,255,0.05);
+    padding: 0.8vw;
+    border-radius: 0.5vw;
+    border-left: 0.4vw solid #00f5ff;
+  }
+
+  .instrument-name {
+    font-weight: bold;
+    color: #00f5ff;
+    font-size: 1vw;
+    margin-bottom: 0.3vw;
+  }
+
+  .instrument-freq {
+    font-size: 0.9vw;
+    color: rgba(255,255,255,0.7);
+  }
+
+  svg.eq-curve {
     width: 100%;
-    height: auto;
+    height: 100%;
+    position: absolute;
+    top: 0;
+    left: 0;
+  }
+
+  .curve-line {
+    stroke: #00f5ff;
+    stroke-width: 0.2vw;
+    fill: none;
   }
 </style>
 </head>
 <body>
-<div class="responsive-container">
-  <div class="container">
-    <h1>Parametric EQ Frequency Guide</h1>
-    <div class="chart-wrapper">
+<div class="container">
+  <h1>Parametric EQ Frequency Guide</h1>
+
+  <div class="chart-wrapper">
+    <div class="chart-content">
       <div class="frequency-axis">
         <div class="frequency-band" data-band="sub-bass"><div class="band-label">SUB BASS</div></div>
         <div class="frequency-band" data-band="bass"><div class="band-label">BASS</div></div>
@@ -105,9 +177,43 @@
         <div class="frequency-band" data-band="brilliance"><div class="band-label">BRILLIANCE</div></div>
       </div>
       <svg class="eq-curve" viewBox="0 0 1000 300" preserveAspectRatio="xMidYMid meet">
-        <path d="M0,150 Q100,145 143,148 T286,152 Q357,158 429,145 T571,140 Q643,130 714,135 T857,145 Q929,155 1000,150"
-              stroke="#00f5ff" stroke-width="3" fill="none"></path>
+        <path class="curve-line" d="M0,150 Q100,145 143,148 T286,152 Q357,158 429,145 T571,140 Q643,130 714,135 T857,145 Q929,155 1000,150"/>
       </svg>
+    </div>
+  </div>
+
+  <!-- Info Cards Section -->
+  <div class="info-cards">
+    <!-- Copy all your original info-card HTML here -->
+    <div class="info-card" data-band="sub-bass">
+      <h3>Sub Bass</h3>
+      <div class="range">20-60 Hz</div>
+      <div class="description">The lowest frequencies we can hear and feel</div>
+      <div class="examples">Kick drum fundamental, bass guitar lowest notes, synth bass</div>
+    </div>
+    <div class="info-card" data-band="bass">
+      <h3>Bass</h3>
+      <div class="range">60-250 Hz</div>
+      <div class="description">Warmth and body of most instruments</div>
+      <div class="examples">Kick drum body, bass guitar main tone, low toms, male vocal chest</div>
+    </div>
+    <!-- repeat for all remaining bands -->
+  </div>
+
+  <!-- Instrument Markers -->
+  <div class="instrument-markers">
+    <h3>Common Instruments by Primary Frequency Range</h3>
+    <div class="instruments-grid">
+      <!-- Copy all your original instrument-item HTML here -->
+      <div class="instrument-item">
+        <div class="instrument-name">Kick Drum</div>
+        <div class="instrument-freq">Fundamental: 40-80 Hz<br>Body: 80-250 Hz<br>Attack: 2-5 kHz</div>
+      </div>
+      <div class="instrument-item">
+        <div class="instrument-name">Bass Guitar</div>
+        <div class="instrument-freq">Fundamental: 40-200 Hz<br>Body: 200-500 Hz<br>Definition: 800Hz-2kHz</div>
+      </div>
+      <!-- repeat for all remaining instruments -->
     </div>
   </div>
 </div>
