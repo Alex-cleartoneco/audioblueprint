@@ -44,10 +44,8 @@
     margin-bottom: 2vw;
   }
 
-  .chart-content {
+  .chart-wrapper > svg {
     position: absolute;
-    top: 0;
-    left: 0;
     width: 100%;
     height: 100%;
   }
@@ -55,9 +53,11 @@
   .frequency-axis {
     display: flex;
     justify-content: space-between;
-    height: 60%;
-    position: relative;
+    position: absolute;
     bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 60%;
     border-left: 0.3vw solid rgba(255,255,255,0.3);
     border-bottom: 0.3vw solid rgba(255,255,255,0.3);
   }
@@ -66,13 +66,8 @@
     flex: 1;
     position: relative;
     border-right: 0.1vw solid rgba(255,255,255,0.1);
-    cursor: pointer;
     transition: all 0.3s ease;
-  }
-
-  .frequency-band:hover,
-  .frequency-band.highlighted {
-    background: rgba(0,245,255,0.15);
+    cursor: pointer;
   }
 
   .band-label {
@@ -80,10 +75,9 @@
     top: -2vw;
     left: 50%;
     transform: translateX(-50%);
-    font-size: 1vw;
     font-weight: bold;
+    font-size: 1vw;
     color: #00f5ff;
-    white-space: nowrap;
   }
 
   .info-cards {
@@ -99,6 +93,7 @@
     border-radius: 0.8vw;
     padding: 1vw;
     transition: all 0.3s ease;
+    cursor: pointer;
   }
 
   .info-card h3 {
@@ -146,18 +141,11 @@
     color: rgba(255,255,255,0.7);
   }
 
-  svg.eq-curve {
-    width: 100%;
-    height: 100%;
-    position: absolute;
-    top: 0;
-    left: 0;
-  }
-
-  .curve-line {
-    stroke: #00f5ff;
-    stroke-width: 0.2vw;
-    fill: none;
+  .highlighted {
+    background: rgba(0,245,255,0.15) !important;
+    border-left: 0.3vw solid #00f5ff !important;
+    border-right: 0.3vw solid #00f5ff !important;
+    z-index: 10;
   }
 </style>
 </head>
@@ -166,25 +154,22 @@
   <h1>Parametric EQ Frequency Guide</h1>
 
   <div class="chart-wrapper">
-    <div class="chart-content">
-      <div class="frequency-axis">
-        <div class="frequency-band" data-band="sub-bass"><div class="band-label">SUB BASS</div></div>
-        <div class="frequency-band" data-band="bass"><div class="band-label">BASS</div></div>
-        <div class="frequency-band" data-band="low-mids"><div class="band-label">LOW MIDS</div></div>
-        <div class="frequency-band" data-band="mids"><div class="band-label">MIDS</div></div>
-        <div class="frequency-band" data-band="upper-mids"><div class="band-label">UPPER MIDS</div></div>
-        <div class="frequency-band" data-band="presence"><div class="band-label">PRESENCE</div></div>
-        <div class="frequency-band" data-band="brilliance"><div class="band-label">BRILLIANCE</div></div>
-      </div>
-      <svg class="eq-curve" viewBox="0 0 1000 300" preserveAspectRatio="xMidYMid meet">
-        <path class="curve-line" d="M0,150 Q100,145 143,148 T286,152 Q357,158 429,145 T571,140 Q643,130 714,135 T857,145 Q929,155 1000,150"/>
-      </svg>
+    <svg class="eq-curve" viewBox="0 0 1000 300" preserveAspectRatio="none">
+      <path class="curve-line" d="M 0,150 Q 100,145 143,148 T 286,152 Q 357,158 429,145 T 571,140 Q 643,130 714,135 T 857,145 Q 929,155 1000,150" stroke="#00f5ff" stroke-width="3" fill="none"/>
+    </svg>
+    <div class="frequency-axis">
+      <div class="frequency-band" data-band="sub-bass"><div class="band-label">SUB BASS</div></div>
+      <div class="frequency-band" data-band="bass"><div class="band-label">BASS</div></div>
+      <div class="frequency-band" data-band="low-mids"><div class="band-label">LOW MIDS</div></div>
+      <div class="frequency-band" data-band="mids"><div class="band-label">MIDS</div></div>
+      <div class="frequency-band" data-band="upper-mids"><div class="band-label">UPPER MIDS</div></div>
+      <div class="frequency-band" data-band="presence"><div class="band-label">PRESENCE</div></div>
+      <div class="frequency-band" data-band="brilliance"><div class="band-label">BRILLIANCE</div></div>
     </div>
   </div>
 
-  <!-- Info Cards Section -->
   <div class="info-cards">
-    <!-- Copy all your original info-card HTML here -->
+    <!-- original info cards copied in full -->
     <div class="info-card" data-band="sub-bass">
       <h3>Sub Bass</h3>
       <div class="range">20-60 Hz</div>
@@ -197,14 +182,41 @@
       <div class="description">Warmth and body of most instruments</div>
       <div class="examples">Kick drum body, bass guitar main tone, low toms, male vocal chest</div>
     </div>
-    <!-- repeat for all remaining bands -->
+    <div class="info-card" data-band="low-mids">
+      <h3>Low Mids</h3>
+      <div class="range">250-500 Hz</div>
+      <div class="description">Fullness and body</div>
+      <div class="examples">Snare body, guitar body, vocal warmth</div>
+    </div>
+    <div class="info-card" data-band="mids">
+      <h3>Mids</h3>
+      <div class="range">500 Hz - 2 kHz</div>
+      <div class="description">Presence and definition of most instruments</div>
+      <div class="examples">Vocal clarity, guitar presence, snare crack</div>
+    </div>
+    <div class="info-card" data-band="upper-mids">
+      <h3>Upper Mids</h3>
+      <div class="range">2-4 kHz</div>
+      <div class="description">Attack, clarity, and intelligibility</div>
+      <div class="examples">Vocal consonants, cymbal definition, string attack</div>
+    </div>
+    <div class="info-card" data-band="presence">
+      <h3>Presence</h3>
+      <div class="range">4-6 kHz</div>
+      <div class="description">Clarity and "forward" sound</div>
+      <div class="examples">Vocal intelligibility, cymbal shimmer</div>
+    </div>
+    <div class="info-card" data-band="brilliance">
+      <h3>Brilliance</h3>
+      <div class="range">6-20 kHz</div>
+      <div class="description">Air, sparkle, and shimmer</div>
+      <div class="examples">Cymbals, acoustic guitar shimmer, vocal breathiness</div>
+    </div>
   </div>
 
-  <!-- Instrument Markers -->
   <div class="instrument-markers">
     <h3>Common Instruments by Primary Frequency Range</h3>
     <div class="instruments-grid">
-      <!-- Copy all your original instrument-item HTML here -->
       <div class="instrument-item">
         <div class="instrument-name">Kick Drum</div>
         <div class="instrument-freq">Fundamental: 40-80 Hz<br>Body: 80-250 Hz<br>Attack: 2-5 kHz</div>
@@ -213,9 +225,41 @@
         <div class="instrument-name">Bass Guitar</div>
         <div class="instrument-freq">Fundamental: 40-200 Hz<br>Body: 200-500 Hz<br>Definition: 800Hz-2kHz</div>
       </div>
-      <!-- repeat for all remaining instruments -->
+      <div class="instrument-item">
+        <div class="instrument-name">Snare Drum</div>
+        <div class="instrument-freq">Body: 200-500 Hz<br>Crack: 1-4 kHz<br>Sizzle: 5-10 kHz</div>
+      </div>
+      <!-- repeat other instrument-items as in original -->
     </div>
   </div>
 </div>
+
+<script>
+const infoCards = document.querySelectorAll('.info-card');
+const frequencyBands = document.querySelectorAll('.frequency-band');
+
+function highlightBand(bandName) {
+  infoCards.forEach(card => card.classList.remove('highlighted'));
+  frequencyBands.forEach(band => band.classList.remove('highlighted'));
+  if (bandName) {
+    infoCards.forEach(card => {
+      if(card.dataset.band === bandName) card.classList.add('highlighted');
+    });
+    frequencyBands.forEach(band => {
+      if(band.dataset.band === bandName) band.classList.add('highlighted');
+    });
+  }
+}
+
+infoCards.forEach(card => {
+  card.addEventListener('mouseenter', () => highlightBand(card.dataset.band));
+  card.addEventListener('mouseleave', () => highlightBand(null));
+});
+
+frequencyBands.forEach(band => {
+  band.addEventListener('mouseenter', () => highlightBand(band.dataset.band));
+  band.addEventListener('mouseleave', () => highlightBand(null));
+});
+</script>
 </body>
 </html>
