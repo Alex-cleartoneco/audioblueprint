@@ -1,4 +1,6 @@
-<!DOCTYPE html>
+.info-card.highlighted h3 {
+            text-shadow: 0 0 10px rgba(0, 245, 255, 0.8);
+        }<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -155,18 +157,26 @@
         
         .info-cards {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 20px;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
             margin-top: 30px;
         }
         
         .info-card {
             background: rgba(0, 245, 255, 0.05);
             border: 1px solid rgba(0, 245, 255, 0.2);
-            border-radius: 12px;
-            padding: 20px;
+            border-radius: 8px;
+            padding: 12px;
             transition: all 0.3s ease;
             cursor: pointer;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        @media (max-width: 768px) {
+            .info-cards {
+                grid-template-columns: 1fr;
+            }
         }
         
         .info-card:hover,
@@ -183,44 +193,49 @@
         
         .info-card h3 {
             color: #00f5ff;
-            margin-bottom: 10px;
-            font-size: 1.2em;
+            margin-bottom: 2px;
+            font-size: 1em;
             transition: all 0.3s ease;
-        }
-        
-        .info-card.highlighted h3 {
-            text-shadow: 0 0 10px rgba(0, 245, 255, 0.8);
+            display: inline;
         }
         
         .info-card .range {
-            color: rgba(255, 255, 255, 0.6);
-            font-size: 0.9em;
-            margin-bottom: 10px;
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 0.8em;
+            display: block;
+            margin-bottom: 6px;
         }
         
         .info-card .description {
-            margin-bottom: 10px;
-            line-height: 1.5;
+            margin-bottom: 6px;
+            line-height: 1.4;
+            font-size: 0.9em;
+            display: inline;
+        }
+        
+        .info-card .title-line {
+            margin-bottom: 2px;
         }
         
         .info-card .examples {
             color: rgba(255, 255, 255, 0.7);
             font-style: italic;
-            font-size: 0.9em;
-            margin-bottom: 10px;
+            font-size: 0.85em;
+            margin-bottom: 8px;
+            line-height: 1.3;
         }
         
         .effects {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px;
-            font-size: 0.85em;
+            display: flex;
+            gap: 8px;
+            font-size: 0.8em;
         }
         
         .effect {
-            padding: 8px;
-            border-radius: 6px;
+            padding: 6px 8px;
+            border-radius: 4px;
             background: rgba(0, 0, 0, 0.3);
+            flex: 1;
         }
         
         .effect.too-much {
@@ -233,7 +248,8 @@
         
         .effect-label {
             font-weight: bold;
-            margin-bottom: 3px;
+            margin-bottom: 2px;
+            font-size: 0.9em;
         }
         
         .eq-curve {
@@ -346,8 +362,7 @@
             <div class="info-card" data-band="sub-bass">
                 <h3>Sub Bass</h3>
                 <div class="range">20-60 Hz</div>
-                <div class="description">The lowest frequencies we can hear and feel</div>
-                <div class="examples">Kick drum fundamental, bass guitar lowest notes, synth bass</div>
+                <div class="description">The lowest frequencies we can hear and feel. Kick drum fundamental, bass guitar lowest notes, synth bass.</div>
                 <div class="effects">
                     <div class="effect too-much">
                         <div class="effect-label">Too Much:</div>
@@ -363,8 +378,7 @@
             <div class="info-card" data-band="bass">
                 <h3>Bass</h3>
                 <div class="range">60-250 Hz</div>
-                <div class="description">Warmth and body of most instruments</div>
-                <div class="examples">Kick drum body, bass guitar main tone, low toms, male vocal chest</div>
+                <div class="description">Warmth and body of most instruments. Kick drum body, bass guitar main tone, low toms, male vocal chest.</div>
                 <div class="effects">
                     <div class="effect too-much">
                         <div class="effect-label">Too Much:</div>
@@ -380,8 +394,7 @@
             <div class="info-card" data-band="low-mids">
                 <h3>Low Mids</h3>
                 <div class="range">250-500 Hz</div>
-                <div class="description">Fullness and body</div>
-                <div class="examples">Snare body, guitar body, vocal warmth</div>
+                <div class="description">Fullness and body. Snare body, guitar body, vocal warmth.</div>
                 <div class="effects">
                     <div class="effect too-much">
                         <div class="effect-label">Too Much:</div>
@@ -397,8 +410,7 @@
             <div class="info-card" data-band="mids">
                 <h3>Mids</h3>
                 <div class="range">500 Hz - 2 kHz</div>
-                <div class="description">Presence and definition of most instruments</div>
-                <div class="examples">Vocal clarity, guitar presence, snare crack</div>
+                <div class="description">Presence and definition of most instruments. Vocal clarity, guitar presence, snare crack.</div>
                 <div class="effects">
                     <div class="effect too-much">
                         <div class="effect-label">Too Much:</div>
@@ -414,8 +426,7 @@
             <div class="info-card" data-band="upper-mids">
                 <h3>Upper Mids</h3>
                 <div class="range">2-4 kHz</div>
-                <div class="description">Attack, clarity, and intelligibility</div>
-                <div class="examples">Vocal consonants, cymbal definition, string attack</div>
+                <div class="description">Attack, clarity, and intelligibility. Vocal consonants, cymbal definition, string attack.</div>
                 <div class="effects">
                     <div class="effect too-much">
                         <div class="effect-label">Too Much:</div>
@@ -431,8 +442,7 @@
             <div class="info-card" data-band="presence">
                 <h3>Presence</h3>
                 <div class="range">4-6 kHz</div>
-                <div class="description">Clarity and "forward" sound</div>
-                <div class="examples">Vocal intelligibility, cymbal shimmer</div>
+                <div class="description">Clarity and "forward" sound. Vocal intelligibility, cymbal shimmer.</div>
                 <div class="effects">
                     <div class="effect too-much">
                         <div class="effect-label">Too Much:</div>
@@ -448,8 +458,7 @@
             <div class="info-card" data-band="brilliance">
                 <h3>Brilliance</h3>
                 <div class="range">6-20 kHz</div>
-                <div class="description">Air, sparkle, and shimmer</div>
-                <div class="examples">Cymbals, acoustic guitar shimmer, vocal breathiness</div>
+                <div class="description">Air, sparkle, and shimmer. Cymbals, acoustic guitar shimmer, vocal breathiness.</div>
                 <div class="effects">
                     <div class="effect too-much">
                         <div class="effect-label">Too Much:</div>
