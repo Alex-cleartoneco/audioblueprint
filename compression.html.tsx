@@ -1,0 +1,613 @@
+import React, { useState, useEffect, useRef } from 'react';
+import { Play, Pause, Info } from 'lucide-react';
+
+const CompressorVisualizer = () => {
+  const [threshold, setThreshold] = useState(-20);
+  const [ratio, setRatio] = useState(4);
+  const [attack, setAttack] = useState(10);
+  const [release, setRelease] = useState(100);
+  const [knee, setKnee] = useState(3);
+  const [makeupGain, setMakeupGain] = useState(0);
+  const [showInfo, setShowInfo] = useState('');
+  const [isPlaying, setIsPlaying] = useState(false);
+  
+  // Animation state
+  const [currentInput, setCurrentInput] = useState(-40);
+  const [currentOutput, setCurrentOutput] = useState(-40);
+  const [currentGR, setCurrentGR] = useState(0);
+  const animationRef = useRef(null);
+  const timeRef = useRef(0);
+
+  // Calculate output based on compression curve (without time dynamics)
+  const calculateOutputInstant = (input) => {
+    const aboveThreshold = input - threshold;
+    
+    if (aboveThreshold <= 0) {
+      return input + makeupGain;
+    }
+    
+    const kneeRange = knee;
+    if (aboveThreshold < kneeRange) {
+      const kneeRatio = 1 + ((ratio - 1) * (aboveThreshold / kneeRange));
+      const compressed = threshold + (aboveThreshold / kneeRatio);
+      return compressed + makeupGain;
+    }
+    
+    const compressed = threshold + (aboveThreshold / ratio);
+    return compressed + makeupGain;
+  };
+
+  // Generate animated input signal (musical pattern with dynamics)
+  const generateInputSignal = (time) => {
+    // Create a musical phrase pattern with varied dynamics
+    const beatTime = time % 12; // 12 second phrase (even slower)
+    
+    if (beatTime < 0.8) {
+      // Strong hit
+      return -8;
+    } else if (beatTime < 3.5) {
+      // Slow decay
+      const t = (beatTime - 0.8) / 2.7;
+      return -8 - (t * 22);
+    } else if (beatTime < 6.5) {
+      // Quiet sustained
+      return -30 + Math.sin(time * 8) * 2;
+    } else if (beatTime < 7.3) {
+      // Medium hit
+      return -12;
+    } else if (beatTime < 10.0) {
+      // Slow decay
+      const t = (beatTime - 7.3) / 2.7;
+      return -12 - (t * 18);
+    } else {
+      // Slow build up to next phrase
+      const t = (beatTime - 10.0) / 2.0;
+      return -30 + (t * 22);
+    }
+  };
+
+  // Animation loop
+  useEffect(() => {
+    if (!isPlaying) {
+      if (animationRef.current) {
+        cancelAnimationFrame(animationRef.current);
+      }
+      return;
+    }
+
+    const animate = () => {
+      timeRef.current += 0.05; // Slower, smoother animation
+      
+      const targetInput = generateInputSignal(timeRef.current);
+      const targetOutputInstant = calculateOutputInstant(targetInput);
+      
+      // Calculate actual gain reduction (before makeup gain)
+      const outputBeforeMakeup = targetOutputInstant - makeupGain;
+      const targetGR = targetInput > threshold ? Math.max(0, targetInput - outputBeforeMakeup) : 0;
+      
+      // Attack/release envelope simulation
+      const attackCoeff = 1 - Math.exp(-1 / (attack * 0.06)); // Convert ms to frames at 60fps
+      const releaseCoeff = 1 - Math.exp(-1 / (release * 0.06));
+      
+      // Update input immediately (no smoothing needed)
+      setCurrentInput(targetInput);
+      
+      // Smooth the output based on attack/release
+      setCurrentOutput(prev => {
+        const diff = targetOutputInstant - prev;
+        if (Math.abs(diff) < 0.01) return targetOutputInstant;
+        
+        // If output should decrease (more compression), use attack time
+        if (diff < 0) {
+          return prev + (diff * attackCoeff);
+        } else {
+          // If output should increase (less compression), use release time
+          return prev + (diff * releaseCoeff);
+        }
+      });
+      
+      // Smooth gain reduction display
+      setCurrentGR(prev => {
+        const diff = targetGR - prev;
+        if (Math.abs(diff) < 0.01) return targetGR;
+        
+        if (diff > 0) {
+          // Increasing GR (more compression), use attack
+          return prev + (diff * attackCoeff);
+        } else {
+          // Decreasing GR (less compression), use release
+          return prev + (diff * releaseCoeff);
+        }
+      });
+      
+      animationRef.current = requestAnimationFrame(animate);
+    };
+
+    animationRef.current = requestAnimationFrame(animate);
+    
+    return () => {
+      if (animationRef.current) {
+        cancelAnimationFrame(animationRef.current);
+      }
+    };
+  }, [isPlaying, threshold, ratio, attack, release, knee, makeupGain]);
+
+  // Generate compression curve points
+  const generateCurve = () => {
+    const points = [];
+    for (let db = -60; db <= 0; db += 1) {
+      const output = calculateOutputInstant(db);
+      points.push({ input: db, output });
+    }
+    return points;
+  };
+
+  const curvePoints = generateCurve();
+
+  // Convert dB to SVG coordinates
+  const dbToY = (db) => {
+    return 250 - ((db + 60) * (250 / 60));
+  };
+
+  const dbToX = (db) => {
+    return ((db + 60) * (300 / 60));
+  };
+
+  // Convert dB to meter height (0 dB at top)
+  const dbToMeterHeight = (db) => {
+    return Math.max(0, Math.min(100, ((db + 60) / 60) * 100));
+  };
+
+  // Convert dB to meter height for GR meter (inverted - more reduction = higher bar)
+  const grToMeterHeight = (gr) => {
+    // Map 0-20 dB of gain reduction to 0-100% height
+    return Math.max(0, Math.min(100, (gr / 20) * 100));
+  };
+
+  // Create SVG path for compression curve
+  const curvePath = curvePoints.map((point, i) => {
+    const x = dbToX(point.input);
+    const y = dbToY(point.output);
+    return `${i === 0 ? 'M' : 'L'} ${x} ${y}`;
+  }).join(' ');
+
+  // Info tooltips
+  const infoContent = {
+    threshold: "The level where compression begins. Signals above this get compressed.",
+    ratio: "How much the signal is reduced. 4:1 means for every 4dB over threshold, only 1dB comes out.",
+    attack: "How quickly compression starts after crossing threshold. Watch the output meter respond!",
+    release: "How quickly compression stops after signal drops below threshold. Watch it let go!",
+    knee: "How gradually compression kicks in. Soft = smooth/musical, Hard = precise/obvious.",
+    makeup: "Compensates for volume loss from compression. Brings the level back up."
+  };
+
+  // Meter component
+  const Meter = ({ level, label, color }) => {
+    const height = dbToMeterHeight(level);
+    const dbValue = Math.round(level);
+    
+    return (
+      <div className="flex flex-col items-center">
+        <div className="text-xs font-semibold mb-2 text-gray-300">{label}</div>
+        <div className="w-12 h-48 bg-gray-900 rounded border border-gray-700 relative overflow-hidden">
+          {/* dB markings */}
+          {[0, -10, -20, -30, -40, -50, -60].map(db => (
+            <div 
+              key={db}
+              className="absolute w-full border-t border-gray-700"
+              style={{ bottom: `${dbToMeterHeight(db)}%` }}
+            >
+              {db === 0 && <div className="absolute right-1 -top-2 text-xs text-red-400">0</div>}
+              {db === -20 && <div className="absolute right-1 -top-2 text-xs text-gray-500">-20</div>}
+              {db === -40 && <div className="absolute right-1 -top-2 text-xs text-gray-500">-40</div>}
+            </div>
+          ))}
+          
+          {/* Level bar */}
+          <div 
+            className="absolute bottom-0 w-full transition-all duration-100"
+            style={{ 
+              height: `${height}%`,
+              background: height > 83 ? '#ef4444' : height > 66 ? '#f59e0b' : color
+            }}
+          />
+        </div>
+        <div className="text-xs font-mono mt-2 text-gray-400">{dbValue} dB</div>
+      </div>
+    );
+  };
+
+  return (
+    <div className="w-full max-w-6xl mx-auto p-6 bg-gradient-to-br from-gray-900 to-gray-800 text-white rounded-lg shadow-2xl">
+      <h2 className="text-3xl font-bold mb-6 text-center bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+        Interactive Compressor with Real-Time Animation
+      </h2>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Visual Display */}
+        <div className="space-y-4">
+          {/* Meters and Animation Control */}
+          <div className="bg-gray-800 rounded-lg p-4 border border-gray-700">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-blue-300">Signal Flow</h3>
+              <button
+                onClick={() => setIsPlaying(!isPlaying)}
+                className={`flex items-center gap-2 px-4 py-2 rounded font-semibold transition-colors ${
+                  isPlaying 
+                    ? 'bg-red-600 hover:bg-red-500' 
+                    : 'bg-green-600 hover:bg-green-500'
+                }`}
+              >
+                {isPlaying ? (
+                  <>
+                    <Pause size={16} />
+                    Stop
+                  </>
+                ) : (
+                  <>
+                    <Play size={16} />
+                    Play
+                  </>
+                )}
+              </button>
+            </div>
+
+            <div className="flex items-end justify-around">
+              <Meter level={currentInput} label="INPUT" color="#22c55e" />
+              
+              {/* Gain Reduction Meter */}
+              <div className="flex flex-col items-center">
+                <div className="text-xs font-semibold mb-2 text-gray-300">GAIN REDUCTION</div>
+                <div className="w-12 h-48 bg-gray-900 rounded border border-gray-700 relative overflow-hidden flex flex-col-reverse">
+                  {/* dB markings */}
+                  {[0, 3, 6, 10, 15, 20].map(db => (
+                    <div 
+                      key={db}
+                      className="absolute w-full border-t border-gray-700"
+                      style={{ bottom: `${grToMeterHeight(db)}%` }}
+                    >
+                      {db === 0 && <div className="absolute right-1 -top-2 text-xs text-gray-500">0</div>}
+                      {db === 6 && <div className="absolute right-1 -top-2 text-xs text-yellow-500">-6</div>}
+                      {db === 20 && <div className="absolute right-1 -top-2 text-xs text-red-400">-20</div>}
+                    </div>
+                  ))}
+                  
+                  {/* GR bar - grows from bottom */}
+                  <div 
+                    className="w-full transition-all duration-100"
+                    style={{ 
+                      height: `${grToMeterHeight(currentGR)}%`,
+                      background: currentGR > 10 ? '#ef4444' : currentGR > 6 ? '#f59e0b' : currentGR > 3 ? '#eab308' : '#22c55e'
+                    }}
+                  />
+                </div>
+                <div className="text-xs font-mono mt-2 text-yellow-400">
+                  {currentGR > 0.1 ? `-${currentGR.toFixed(1)}` : '0.0'} dB
+                </div>
+              </div>
+              
+              <Meter level={currentOutput} label="OUTPUT" color="#a855f7" />
+            </div>
+
+            {!isPlaying && (
+              <div className="mt-4 text-center text-sm text-gray-400">
+                ▲ Press Play to see compression in action with attack/release!
+              </div>
+            )}
+          </div>
+
+          {/* Compression Curve */}
+          <div className="bg-gray-800 rounded-lg p-4 border border-gray-700">
+            <h3 className="text-lg font-semibold mb-3 text-blue-300">Compression Curve</h3>
+            
+            <svg viewBox="0 0 300 300" className="w-full bg-gray-900 rounded">
+              {/* Grid lines */}
+              {[0, -10, -20, -30, -40, -50].map(db => (
+                <g key={db}>
+                  <line x1="0" y1={dbToY(db)} x2="300" y2={dbToY(db)} 
+                        stroke="#374151" strokeWidth="1" strokeDasharray="2,2"/>
+                  <line x1={dbToX(db)} y1="0" x2={dbToX(db)} y2="300" 
+                        stroke="#374151" strokeWidth="1" strokeDasharray="2,2"/>
+                </g>
+              ))}
+              
+              {/* Unity gain line (no compression) */}
+              <line x1="0" y1="250" x2="300" y2="0" 
+                    stroke="#4b5563" strokeWidth="2" strokeDasharray="4,4"/>
+              
+              {/* Threshold line */}
+              <line x1={dbToX(threshold)} y1="0" x2={dbToX(threshold)} y2="300" 
+                    stroke="#ef4444" strokeWidth="2" strokeDasharray="4,2"/>
+              
+              {/* Compression curve */}
+              <path d={curvePath} fill="none" stroke="#3b82f6" strokeWidth="3"/>
+              
+              {/* Animated signal indicators */}
+              {isPlaying && (
+                <>
+                  <circle cx={dbToX(currentInput)} cy={dbToY(currentInput)} 
+                          r="6" fill="#22c55e" stroke="#fff" strokeWidth="2"/>
+                  <circle cx={dbToX(currentInput)} cy={dbToY(currentOutput)} 
+                          r="6" fill="#a855f7" stroke="#fff" strokeWidth="2"/>
+                  <line x1={dbToX(currentInput)} y1={dbToY(currentInput)} 
+                        x2={dbToX(currentInput)} y2={dbToY(currentOutput)} 
+                        stroke="#fbbf24" strokeWidth="2" strokeDasharray="2,2"/>
+                </>
+              )}
+              
+              {/* Labels */}
+              <text x="10" y="20" fill="#9ca3af" fontSize="12">Output (dB)</text>
+              <text x="240" y="290" fill="#9ca3af" fontSize="12">Input (dB)</text>
+            </svg>
+
+            {/* Legend */}
+            <div className="mt-4 grid grid-cols-2 gap-2 text-sm">
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                <span>Input Signal</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 bg-purple-500 rounded-full"></div>
+                <span>Output Signal</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-0.5 bg-blue-500"></div>
+                <span>Compression Curve</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-0.5 bg-red-500"></div>
+                <span>Threshold</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Controls */}
+        <div className="space-y-4">
+          {/* Threshold */}
+          <div className="bg-gray-800 rounded-lg p-4 border border-gray-700">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <label className="text-sm font-semibold">Threshold</label>
+                <button 
+                  onClick={() => setShowInfo(showInfo === 'threshold' ? '' : 'threshold')}
+                  className="text-gray-400 hover:text-blue-400"
+                >
+                  <Info size={14} />
+                </button>
+              </div>
+              <span className="text-sm font-mono text-red-400">{threshold} dB</span>
+            </div>
+            <input
+              type="range"
+              min="-60"
+              max="0"
+              value={threshold}
+              onChange={(e) => setThreshold(Number(e.target.value))}
+              className="w-full"
+            />
+            {showInfo === 'threshold' && (
+              <p className="text-xs text-blue-300 mt-2 bg-gray-900 p-2 rounded">{infoContent.threshold}</p>
+            )}
+          </div>
+
+          {/* Ratio */}
+          <div className="bg-gray-800 rounded-lg p-4 border border-gray-700">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <label className="text-sm font-semibold">Ratio</label>
+                <button 
+                  onClick={() => setShowInfo(showInfo === 'ratio' ? '' : 'ratio')}
+                  className="text-gray-400 hover:text-blue-400"
+                >
+                  <Info size={14} />
+                </button>
+              </div>
+              <span className="text-sm font-mono text-purple-400">{ratio}:1</span>
+            </div>
+            <input
+              type="range"
+              min="1"
+              max="20"
+              step="0.5"
+              value={ratio}
+              onChange={(e) => setRatio(Number(e.target.value))}
+              className="w-full"
+            />
+            {showInfo === 'ratio' && (
+              <p className="text-xs text-blue-300 mt-2 bg-gray-900 p-2 rounded">{infoContent.ratio}</p>
+            )}
+          </div>
+
+          {/* Attack */}
+          <div className="bg-gray-800 rounded-lg p-4 border border-gray-700">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <label className="text-sm font-semibold">Attack</label>
+                <button 
+                  onClick={() => setShowInfo(showInfo === 'attack' ? '' : 'attack')}
+                  className="text-gray-400 hover:text-blue-400"
+                >
+                  <Info size={14} />
+                </button>
+              </div>
+              <span className="text-sm font-mono text-orange-400">{attack} ms</span>
+            </div>
+            <input
+              type="range"
+              min="0.1"
+              max="100"
+              step="0.1"
+              value={attack}
+              onChange={(e) => setAttack(Number(e.target.value))}
+              className="w-full"
+            />
+            {showInfo === 'attack' && (
+              <p className="text-xs text-blue-300 mt-2 bg-gray-900 p-2 rounded">{infoContent.attack}</p>
+            )}
+          </div>
+
+          {/* Release */}
+          <div className="bg-gray-800 rounded-lg p-4 border border-gray-700">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <label className="text-sm font-semibold">Release</label>
+                <button 
+                  onClick={() => setShowInfo(showInfo === 'release' ? '' : 'release')}
+                  className="text-gray-400 hover:text-blue-400"
+                >
+                  <Info size={14} />
+                </button>
+              </div>
+              <span className="text-sm font-mono text-cyan-400">{release} ms</span>
+            </div>
+            <input
+              type="range"
+              min="10"
+              max="1000"
+              step="10"
+              value={release}
+              onChange={(e) => setRelease(Number(e.target.value))}
+              className="w-full"
+            />
+            {showInfo === 'release' && (
+              <p className="text-xs text-blue-300 mt-2 bg-gray-900 p-2 rounded">{infoContent.release}</p>
+            )}
+          </div>
+
+          {/* Knee */}
+          <div className="bg-gray-800 rounded-lg p-4 border border-gray-700">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <label className="text-sm font-semibold">Knee</label>
+                <button 
+                  onClick={() => setShowInfo(showInfo === 'knee' ? '' : 'knee')}
+                  className="text-gray-400 hover:text-blue-400"
+                >
+                  <Info size={14} />
+                </button>
+              </div>
+              <span className="text-sm font-mono text-pink-400">
+                {knee === 0 ? 'Hard' : knee < 3 ? 'Medium' : 'Soft'}
+              </span>
+            </div>
+            <input
+              type="range"
+              min="0"
+              max="6"
+              step="1"
+              value={knee}
+              onChange={(e) => setKnee(Number(e.target.value))}
+              className="w-full"
+            />
+            {showInfo === 'knee' && (
+              <p className="text-xs text-blue-300 mt-2 bg-gray-900 p-2 rounded">{infoContent.knee}</p>
+            )}
+          </div>
+
+          {/* Makeup Gain */}
+          <div className="bg-gray-800 rounded-lg p-4 border border-gray-700">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <label className="text-sm font-semibold">Makeup Gain</label>
+                <button 
+                  onClick={() => setShowInfo(showInfo === 'makeup' ? '' : 'makeup')}
+                  className="text-gray-400 hover:text-blue-400"
+                >
+                  <Info size={14} />
+                </button>
+              </div>
+              <span className="text-sm font-mono text-green-400">+{makeupGain} dB</span>
+            </div>
+            <input
+              type="range"
+              min="0"
+              max="20"
+              step="0.5"
+              value={makeupGain}
+              onChange={(e) => setMakeupGain(Number(e.target.value))}
+              className="w-full"
+            />
+            {showInfo === 'makeup' && (
+              <p className="text-xs text-blue-300 mt-2 bg-gray-900 p-2 rounded">{infoContent.makeup}</p>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Presets */}
+      <div className="mt-6 bg-gray-800 rounded-lg p-4 border border-gray-700">
+        <h3 className="text-sm font-semibold mb-3 text-blue-300">Quick Presets</h3>
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
+          <button
+            onClick={() => {
+              setThreshold(-20);
+              setRatio(4);
+              setAttack(10);
+              setRelease(100);
+              setKnee(3);
+              setMakeupGain(0);
+            }}
+            className="px-3 py-2 bg-blue-600 hover:bg-blue-500 rounded text-sm transition-colors font-semibold"
+          >
+            Reset
+          </button>
+          <button
+            onClick={() => {
+              setThreshold(-20);
+              setRatio(3);
+              setAttack(15);
+              setRelease(150);
+              setKnee(4);
+              setMakeupGain(0);
+            }}
+            className="px-3 py-2 bg-gray-700 hover:bg-gray-600 rounded text-sm transition-colors"
+          >
+            Vocal
+          </button>
+          <button
+            onClick={() => {
+              setThreshold(-25);
+              setRatio(5);
+              setAttack(30);
+              setRelease(300);
+              setKnee(3);
+              setMakeupGain(0);
+            }}
+            className="px-3 py-2 bg-gray-700 hover:bg-gray-600 rounded text-sm transition-colors"
+          >
+            Bass
+          </button>
+          <button
+            onClick={() => {
+              setThreshold(-15);
+              setRatio(4);
+              setAttack(10);
+              setRelease(150);
+              setKnee(3);
+              setMakeupGain(0);
+            }}
+            className="px-3 py-2 bg-gray-700 hover:bg-gray-600 rounded text-sm transition-colors"
+          >
+            Snare
+          </button>
+          <button
+            onClick={() => {
+              setThreshold(-8);
+              setRatio(2);
+              setAttack(30);
+              setRelease(400);
+              setKnee(5);
+              setMakeupGain(0);
+            }}
+            className="px-3 py-2 bg-gray-700 hover:bg-gray-600 rounded text-sm transition-colors"
+          >
+            Mix Bus
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default CompressorVisualizer;
